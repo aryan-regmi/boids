@@ -1,9 +1,10 @@
 #![allow(dead_code)]
 /// All coordinates follow N-E-D (North-East-Down) (intertial) or H-R-D (Head-RightLimb-Down)
 /// (body)
-use std::ops::{Add, Sub};
+use std::ops::{Add, AddAssign, Mul, Sub};
 
 // Generic 2d vector
+#[derive(Debug)]
 pub struct Vec2d {
     pub x: f32,
     pub y: f32,
@@ -11,7 +12,8 @@ pub struct Vec2d {
 
 impl Vec2d {
     fn new(x: f32, y: f32) -> Self {
-        Self { x, y }
+        // y is negative because positive y-axix points down.
+        Self { x, y: -y }
     }
 
     // Calculates dot product with another 2d vector.
@@ -44,7 +46,7 @@ impl Add for Vec2d {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self {
+        Self::Output {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
         }
@@ -56,44 +58,64 @@ impl Sub for Vec2d {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Self {
+        Self::Output {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
         }
     }
 }
 
-// Represents 2d position.
-pub struct Pos {
-    pub position: Vec2d,
+impl Mul<f32> for &Vec2d {
+    type Output = Vec2d;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self::Output {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
+    }
 }
 
-impl Pos {
+impl AddAssign for Vec2d {
+    fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
+
+// Represents 2d position.
+#[derive(Debug)]
+pub struct Position {
+    pub vec: Vec2d,
+}
+
+impl Position {
     pub fn new(position_x: f32, position_y: f32) -> Self {
         Self {
-            position: Vec2d::new(position_x, position_y),
+            vec: Vec2d::new(position_x, -position_y),
         }
     }
 
     // Calculates the angle (in degrees) between North and the postion vector.
     pub fn heading(&self) -> f32 {
-        let x_pos = self.position.x;
-        let y_pos = self.position.y;
+        let x_pos = self.vec.x;
+        let y_pos = self.vec.y;
 
         y_pos.atan2(x_pos).to_degrees()
     }
 }
 
 // Represents 2d velocity.
-pub struct Vel {
-    pub velocity: Vec2d,
+#[derive(Debug)]
+pub struct Velocity {
+    pub vec: Vec2d,
 }
 
-impl Vel {
+impl Velocity {
     // Creates new velocity vector from given x and y components.
     pub fn new(velocity_x: f32, velocity_y: f32) -> Self {
         Self {
-            velocity: Vec2d::new(velocity_x, velocity_y),
+            vec: Vec2d::new(velocity_x, -velocity_y),
         }
     }
 
@@ -106,7 +128,7 @@ impl Vel {
     // angle - The angle of the velocity vector. MUST BE IN DEGREES!
     pub fn from_polar(magnitude: f32, angle: f32) -> Self {
         Self {
-            velocity: Vec2d::new(
+            vec: Vec2d::new(
                 magnitude * angle.to_radians().cos(),
                 magnitude * angle.to_radians().sin(),
             ),
@@ -119,8 +141,8 @@ impl Vel {
     // ------------
     // heading - The angle of the body and North (angle of position vector), in [Degrees].
     pub fn side_slip(&self, heading: f32) -> f32 {
-        let vel_x = self.velocity.x;
-        let vel_y = self.velocity.y;
+        let vel_x = self.vec.x;
+        let vel_y = self.vec.y;
         // Calculate angle the velocity vector points in
         let vel_angle = vel_y.atan2(vel_x).to_degrees();
 

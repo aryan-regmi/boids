@@ -1,4 +1,7 @@
 mod vectors;
-pub use vectors::{Vel, Pos, Vec2d};
+pub use vectors::{Position, Vec2d, Velocity};
 
 mod boids;
+pub use boids::Boid;
+
+mod world;
