@@ -12,9 +12,9 @@ pub struct Vec2d {
 
 impl Vec2d {
     /// Creates new `Vec2d` with specified x and y components.
-    fn new(x: f32, y: f32) -> Self {
+    pub fn new(x: f32, y: f32) -> Self {
         // y is negative because positive y-axix points down.
-        Self { x, y: -y }
+        Self { x, y }
     }
 
     // Calculates dot product with another 2d vector.
@@ -27,7 +27,7 @@ impl Vec2d {
     // The vector points in the z-axis (into or out of the screen), but its magnitude (postive or
     // negative) tells us the rotation direction (counter-clockwise or clockwise respectively).
     pub fn cross(&self, other: &Self) -> f32 {
-        self.x * -other.y - -self.y * other.x
+        self.x * other.y - self.y * other.x
     }
 
     // Calculates the vector normal to the current vector in-plane.
@@ -116,7 +116,7 @@ impl Position {
     /// Creates new position vector.
     pub fn new(position_x: f32, position_y: f32) -> Self {
         Self {
-            vec: Vec2d::new(position_x, position_y),
+            vec: Vec2d::new(position_x, -position_y),
         }
     }
 
@@ -139,7 +139,7 @@ impl Velocity {
     // Creates new velocity vector from given x and y components.
     pub fn new(velocity_x: f32, velocity_y: f32) -> Self {
         Self {
-            vec: Vec2d::new(velocity_x, velocity_y),
+            vec: Vec2d::new(velocity_x, -velocity_y),
         }
     }
 
@@ -182,7 +182,7 @@ mod vector_tests {
     #[test]
     fn it_can_make_vec2d() {
         let vec1 = Vec2d::new(0.1, 0.5);
-        let vec2 = Vec2d { x: 0.1, y: -0.5 };
+        let vec2 = Vec2d { x: 0.1, y: 0.5 };
         assert_eq!(vec1, vec2);
     }
 
@@ -207,7 +207,7 @@ mod vector_tests {
     fn it_can_calculate_surface_normal_of_vec2d() {
         let vec = Vec2d::new(0., 1.);
         let normal = vec.surface_normal();
-        assert_eq!(normal, Vec2d::new(1., 0.))
+        assert_eq!(normal, Vec2d::new(-1., 0.))
     }
 
     #[test]
