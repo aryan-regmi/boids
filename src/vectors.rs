@@ -59,7 +59,7 @@ impl Vec2d {
     // would switch the negative sign to the y value.
     pub fn surface_normal(&self) -> Self {
         Self {
-            x: self.y,
+            x: -self.y,
             y: self.x,
         }
     }
@@ -168,9 +168,9 @@ mod vec2d_tests {
 
     #[test]
     fn it_can_calculate_surface_normal() {
-        let vec = Vec2d::new(0., 1.);
+        let vec = Vec2d::new(3., 2.);
         let normal = vec.surface_normal();
-        assert_eq!(normal, Vec2d::new(-1., 0.))
+        assert_eq!(normal, Vec2d::new(2., -3.))
     }
 
     #[test]
