@@ -14,7 +14,30 @@ impl Vec2d {
     /// Creates new `Vec2d` with specified x and y components.
     pub fn new(x: f32, y: f32) -> Self {
         // y is negative because positive y-axix points down.
-        Self { x, y }
+        Self { x, y: -y }
+    }
+
+    // Creates new 2d vector from given angle and magnitude.
+    //
+    // Parameters:
+    // ------------
+    // magnitude - The magnitude of the vector.
+    //
+    // angle - The angle of the vector. MUST BE IN DEGREES!
+    pub fn from_polar(magnitude: f32, angle: f32) -> Self {
+        Self {
+            x: magnitude * angle.to_radians().cos(),
+            y: -magnitude * angle.to_radians().sin(),
+        }
+    }
+
+    /// Finds the direction the vector is pointing in.
+    ///
+    /// Returns the angle (in degrees) from the intertial x-axis.
+    pub fn direction(&self) -> f32 {
+        let y = self.y;
+        let x = self.x;
+        y.atan2(x).to_degrees()
     }
 
     // Calculates dot product with another 2d vector.
@@ -27,7 +50,7 @@ impl Vec2d {
     // The vector points in the z-axis (into or out of the screen), but its magnitude (postive or
     // negative) tells us the rotation direction (counter-clockwise or clockwise respectively).
     pub fn cross(&self, other: &Self) -> f32 {
-        self.x * other.y - self.y * other.x
+        self.x * -other.y - -self.y * other.x
     }
 
     // Calculates the vector normal to the current vector in-plane.
@@ -36,7 +59,7 @@ impl Vec2d {
     // would switch the negative sign to the y value.
     pub fn surface_normal(&self) -> Self {
         Self {
-            x: -self.y,
+            x: self.y,
             y: self.x,
         }
     }
@@ -106,97 +129,37 @@ impl PartialEq for Vec2d {
     }
 }
 
-// Represents 2d position with x and y components.
-#[derive(Debug)]
-pub struct Position {
-    pub vec: Vec2d,
-}
-
-impl Position {
-    /// Creates new position vector.
-    pub fn new(position_x: f32, position_y: f32) -> Self {
-        Self {
-            vec: Vec2d::new(position_x, -position_y),
-        }
-    }
-
-    // Calculates the angle (in degrees) between North and the postion vector.
-    pub fn heading(&self) -> f32 {
-        let x_pos = self.vec.x;
-        let y_pos = self.vec.y;
-
-        y_pos.atan2(x_pos).to_degrees()
-    }
-}
-
-// Represents 2d velocity.
-#[derive(Debug)]
-pub struct Velocity {
-    pub vec: Vec2d,
-}
-
-impl Velocity {
-    // Creates new velocity vector from given x and y components.
-    pub fn new(velocity_x: f32, velocity_y: f32) -> Self {
-        Self {
-            vec: Vec2d::new(velocity_x, -velocity_y),
-        }
-    }
-
-    // Creates new velocity vector from given angle and magnitude.
-    //
-    // Parameters:
-    // ------------
-    // magnitude - The magnitude of the velocity vector (speed).
-    //
-    // angle - The angle of the velocity vector. MUST BE IN DEGREES!
-    pub fn from_polar(magnitude: f32, angle: f32) -> Self {
-        Self {
-            vec: Vec2d::new(
-                magnitude * angle.to_radians().cos(),
-                magnitude * angle.to_radians().sin(),
-            ),
-        }
-    }
-
-    // Calculates side-slip angle (angle between body and its velocity vector).
-    //
-    // Parameters:
-    // ------------
-    // heading - The angle of the body and North (angle of position vector), in [Degrees].
-    pub fn side_slip(&self, heading: f32) -> f32 {
-        let vel_x = self.vec.x;
-        let vel_y = self.vec.y;
-        // Calculate angle the velocity vector points in
-        let vel_angle = vel_y.atan2(vel_x).to_degrees();
-
-        // Difference of velocity angle and heading is the side-slip angle
-        vel_angle - heading
-    }
-}
-
 #[cfg(test)]
-mod vector_tests {
+mod vec2d_tests {
     use super::*;
 
     #[test]
     fn it_can_make_vec2d() {
         let vec1 = Vec2d::new(0.1, 0.5);
-        let vec2 = Vec2d { x: 0.1, y: 0.5 };
+        let vec2 = Vec2d { x: 0.1, y: -0.5 };
         assert_eq!(vec1, vec2);
     }
 
     #[test]
-    fn it_can_calculate_dot_product_of_vec2d() {
+    fn it_can_make_vec2d_from_polar() {
+        let vec1 = Vec2d::new(1.5, 1.5);
+        let mag = (2_f32 * 1.5 * 1.5).sqrt();
+        let vec2 = Vec2d::from_polar(mag, 45.0);
+        let diff = vec1 - vec2;
+        assert!(diff.x <= f32::EPSILON);
+        assert!(diff.y <= f32::EPSILON);
+    }
+
+    #[test]
+    fn it_can_calculate_dot_product() {
         let vec1 = Vec2d::new(0., 1.);
         let vec2 = Vec2d::new(1., 0.);
         let dot = vec1.dot(&vec2);
-
         assert_eq!(dot, 0.);
     }
 
     #[test]
-    fn it_can_calculate_cross_product_of_vec2d() {
+    fn it_can_calculate_cross_product() {
         let vec1 = Vec2d::new(1., 0.);
         let vec2 = Vec2d::new(0., 1.);
         let cross = vec1.cross(&vec2);
@@ -204,14 +167,14 @@ mod vector_tests {
     }
 
     #[test]
-    fn it_can_calculate_surface_normal_of_vec2d() {
+    fn it_can_calculate_surface_normal() {
         let vec = Vec2d::new(0., 1.);
         let normal = vec.surface_normal();
         assert_eq!(normal, Vec2d::new(-1., 0.))
     }
 
     #[test]
-    fn it_can_add_vec2() {
+    fn it_can_add_vec2d() {
         let vec1 = Vec2d::new(1., 0.);
         let vec2 = Vec2d::new(0., 1.);
         let added = Vec2d::new(1., 1.);
@@ -219,7 +182,7 @@ mod vector_tests {
     }
 
     #[test]
-    fn it_can_subtract_vec2() {
+    fn it_can_subtract_vec2d() {
         let vec1 = Vec2d::new(1., 0.);
         let vec2 = Vec2d::new(0., 1.);
         let sub = Vec2d::new(1., -1.);
@@ -248,30 +211,8 @@ mod vector_tests {
     }
 
     #[test]
-    fn it_can_create_position_vector() {
-        let pos = Position::new(3., 5.);
-        assert_eq!(pos.vec, Vec2d { x: 3., y: -5. });
-    }
-
-    #[test]
-    fn it_can_calculate_heading() {
-        let pos = Position::new(1.0, 1.0);
-        assert_eq!(pos.heading(), -45.0);
-    }
-
-    #[test]
-    fn it_can_create_velocity_vector() {
-        let v1 = Velocity::new(1., 1.);
-        let v2 = Velocity::from_polar(2_f32.sqrt(), 45.0);
-        let diff = v1.vec - v2.vec;
-        assert!(diff.x < f32::EPSILON);
-        assert!(diff.y < f32::EPSILON);
-    }
-
-    #[test]
-    fn it_can_calculate_side_slip() {
-        let v1 = Velocity::new(5.3, 5.3);
-        let pos = Position::new(1.0, 1.0);
-        assert_eq!(v1.side_slip(pos.heading()), 0.);
+    fn it_can_calculate_direction() {
+        let vec1 = Vec2d::new(1.0, 1.0);
+        assert_eq!(vec1.direction(), -45.0);
     }
 }

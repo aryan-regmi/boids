@@ -1,5 +1,5 @@
 mod vectors;
-pub use vectors::{Position, Vec2d, Velocity};
+pub use vectors::Vec2d;
 
 mod boids;
 pub use crate::boids::Boid;
