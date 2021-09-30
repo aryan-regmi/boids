@@ -55,7 +55,7 @@ mod boid_tests {
             velocity: vel2,
         };
 
-        assert_eq!(boid.mass, boid2.mass);
+        assert!((boid.mass - boid2.mass).abs() < f32::EPSILON);
         assert_eq!(boid.position, boid2.position);
         assert_eq!(boid.velocity, boid2.velocity);
     }
