@@ -4,7 +4,7 @@
 use std::ops::{Add, AddAssign, Mul, Sub};
 
 // Generic 2d vector with x and y components.
-#[derive(Debug)]
+#[derive(Debug, PartialOrd, Clone)]
 pub struct Vec2d {
     pub x: f32,
     pub y: f32,

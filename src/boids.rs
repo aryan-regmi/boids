@@ -3,7 +3,7 @@
 use crate::Vec2d;
 
 /// Defines a bird-like object. This is the basic "entity" of this program.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub struct Boid {
     pub position: Vec2d,
     pub velocity: Vec2d,
@@ -67,5 +67,13 @@ mod boid_tests {
         let mut boid = Boid::new(1.0, pos, vel);
         boid.constant_velocity_movement(1.0);
         assert_eq!(boid.position, Vec2d::new(boid.position.x, -boid.position.y));
+    }
+
+    #[test]
+    fn it_can_calculate_sideslip() {
+        let pos = Vec2d::new(0.0, 0.0);
+        let vel = Vec2d::new(3.0, 3.0);
+        let boid = Boid::new(1.0, pos, vel);
+        assert!(boid.side_slip() < f32::EPSILON);
     }
 }

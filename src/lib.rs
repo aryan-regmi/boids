@@ -5,3 +5,6 @@ mod boids;
 pub use crate::boids::Boid;
 
 mod world;
+pub use world::World;
+
+mod collisions;
