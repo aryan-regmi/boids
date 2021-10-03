@@ -10,6 +10,8 @@ pub struct Vec2d {
     pub y: f32,
 }
 
+pub type Degrees = f32;
+
 impl Vec2d {
     /// Creates new `Vec2d` with specified x and y components.
     pub fn new(x: f32, y: f32) -> Self {
@@ -24,7 +26,7 @@ impl Vec2d {
     // magnitude - The magnitude of the vector.
     //
     // angle - The angle of the vector. MUST BE IN DEGREES!
-    pub fn from_polar(magnitude: f32, angle: f32) -> Self {
+    pub fn from_polar(magnitude: f32, angle: Degrees) -> Self {
         Self {
             x: magnitude * angle.to_radians().cos(),
             y: -magnitude * angle.to_radians().sin(),
@@ -68,6 +70,16 @@ impl Vec2d {
 // Enable using addition operator (addition of components)
 impl Add for Vec2d {
     type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+impl Add for &Vec2d {
+    type Output = Vec2d;
 
     fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
