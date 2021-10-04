@@ -21,29 +21,36 @@ impl World {
     }
 }
 
-struct Triangle {
+pub struct Triangle {
     vertices: Vec<Vec2d>,
-    edges: Vec<Vec2d>,
+    edges: Vec<RayEqn>,
 }
 
-impl Triangle {}
+impl Triangle {
+    pub fn new(vertex1: Vec2d, vertex2: Vec2d, vertex3: Vec2d, ray_length: f32) -> Self {
+        let vertices = vec![vertex1, vertex2, vertex3];
+        let edges = RayEqn::from_vertices(&vertices, ray_length);
+
+        Self { vertices, edges }
+    }
+}
 
 /// Holds coefficients for the equation defining the ray.
 /// (y = mx + b, from the start of the ray to the length)
 /// slope is m ==> tan(theta) = tan(y/x)
 #[derive(Debug)]
-pub struct RayEqn<'a> {
+pub struct RayEqn {
     pub slope: Option<f32>,
     pub y_intercept: Option<f32>,
-    pub start_position: &'a Vec2d,
+    pub start_position: Vec2d,
     pub length: f32,
 }
 
-impl<'a> RayEqn<'a> {
+impl RayEqn {
     pub fn new(
         slope: Option<f32>,
         y_intercept: Option<f32>,
-        start_position: &'a Vec2d,
+        start_position: Vec2d,
         length: f32,
     ) -> Self {
         Self {
@@ -52,6 +59,39 @@ impl<'a> RayEqn<'a> {
             start_position,
             length,
         }
+    }
+
+    pub fn from_vertices(vertices: &[Vec2d], ray_length: f32) -> Vec<Self> {
+        // Calculate and store all the edges
+        let mut edges = vec![];
+        for i in 0..vertices.len() {
+            if i == vertices.len() - 1 {
+                let slope = (vertices[0].y - vertices[i].y) / (vertices[0].x - vertices[i].x);
+                let y_intercept = vertices[i].y - slope * vertices[i].x;
+                let start_position = Vec2d::new(vertices[i].x, vertices[i].y);
+                edges.push(RayEqn::new(
+                    Some(slope),
+                    Some(y_intercept),
+                    start_position,
+                    ray_length,
+                ));
+                /* let edge = &vertices[0] - &vertices[i];
+                edges.push(edge) */
+            } else {
+                let slope =
+                    (vertices[i + 1].y - vertices[i].y) / (vertices[i + 1].x - vertices[i].x);
+                let y_intercept = vertices[i].y - slope * vertices[i].x;
+                let start_position = Vec2d::new(vertices[i].x, vertices[i].y);
+                edges.push(RayEqn::new(
+                    Some(slope),
+                    Some(y_intercept),
+                    start_position,
+                    ray_length,
+                ));
+            }
+        }
+
+        edges
     }
 
     pub fn overlap(

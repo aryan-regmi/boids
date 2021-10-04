@@ -100,6 +100,16 @@ impl Sub for Vec2d {
         }
     }
 }
+impl Sub for &Vec2d {
+    type Output = Vec2d;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::Output {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
 
 // Enable using multiplication operator (scalar multiplication)
 impl Mul<f32> for &Vec2d {
