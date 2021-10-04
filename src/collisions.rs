@@ -21,18 +21,39 @@ impl World {
     }
 }
 
+struct Triangle {
+    vertices: Vec<Vec2d>,
+    edges: Vec<Vec2d>,
+}
+
+impl Triangle {}
+
 /// Holds coefficients for the equation defining the ray.
 /// (y = mx + b, from the start of the ray to the length)
 /// slope is m ==> tan(theta) = tan(y/x)
 #[derive(Debug)]
-struct RayEqn<'a> {
-    slope: Option<f32>,
-    y_intercept: Option<f32>,
-    start_position: &'a Vec2d,
-    length: f32,
+pub struct RayEqn<'a> {
+    pub slope: Option<f32>,
+    pub y_intercept: Option<f32>,
+    pub start_position: &'a Vec2d,
+    pub length: f32,
 }
 
 impl<'a> RayEqn<'a> {
+    pub fn new(
+        slope: Option<f32>,
+        y_intercept: Option<f32>,
+        start_position: &'a Vec2d,
+        length: f32,
+    ) -> Self {
+        Self {
+            slope,
+            y_intercept,
+            start_position,
+            length,
+        }
+    }
+
     pub fn overlap(
         start_pos1: &Vec2d,
         start_pos2: &Vec2d,
@@ -167,6 +188,7 @@ impl<'a> RayEqn<'a> {
     }
 }
 
+// TODO: Add FOV by limiting range of angles
 /// Casts rays of speficifed length from the center of the given boid.
 pub fn raycast(boid: &Boid, ray_length: f32, num_rays: u32) {
     // Cast rays from the center of the boid
