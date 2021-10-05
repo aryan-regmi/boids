@@ -21,9 +21,10 @@ impl World {
     }
 }
 
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct Triangle {
     vertices: Vec<Vec2d>,
-    edges: Vec<RayEqn>,
+    edges: Vec<Ray>,
 }
 
 impl Triangle {
@@ -45,7 +46,7 @@ impl Triangle {
         let vertex3 = Vec2d::new(center.x - width / 2., center.y - height / 2.);
 
         let vertices = vec![vertex1, vertex2, vertex3];
-        let edges = RayEqn::from_vertices(&vertices, edge_lengths);
+        let edges = Ray::from_vertices(&vertices, edge_lengths);
 
         Self { vertices, edges }
     }
@@ -55,14 +56,14 @@ impl Triangle {
 /// (y = mx + b, from the start of the ray to the length)
 /// slope is m ==> tan(theta) = tan(y/x)
 #[derive(Debug, PartialEq, PartialOrd)]
-pub struct RayEqn {
+pub struct Ray {
     pub slope: Option<f32>,
     pub y_intercept: Option<f32>,
     pub start_position: Vec2d,
     pub length: f32,
 }
 
-impl RayEqn {
+impl Ray {
     pub fn new(
         slope: Option<f32>,
         y_intercept: Option<f32>,
@@ -92,7 +93,7 @@ impl RayEqn {
                 if slope.is_finite() {
                     let y_intercept = vertices[i].y - slope * vertices[i].x;
                     let start_position = Vec2d::new(vertices[i].x, vertices[i].y);
-                    edges.push(RayEqn::new(
+                    edges.push(Ray::new(
                         Some(slope),
                         Some(y_intercept),
                         start_position,
@@ -100,7 +101,7 @@ impl RayEqn {
                     ));
                 } else {
                     let start_position = Vec2d::new(vertices[i].x, vertices[i].y);
-                    edges.push(RayEqn::vertical_line(start_position, edge_lengths[i]));
+                    edges.push(Ray::vertical_line(start_position, edge_lengths[i]));
                 }
             } else {
                 let slope =
@@ -110,7 +111,7 @@ impl RayEqn {
                 if slope.is_finite() {
                     let y_intercept = vertices[i].y - slope * vertices[i].x;
                     let start_position = Vec2d::new(vertices[i].x, vertices[i].y);
-                    edges.push(RayEqn::new(
+                    edges.push(Ray::new(
                         Some(slope),
                         Some(y_intercept),
                         start_position,
@@ -118,7 +119,7 @@ impl RayEqn {
                     ));
                 } else {
                     let start_position = Vec2d::new(vertices[i].x, vertices[i].y);
-                    edges.push(RayEqn::vertical_line(start_position, edge_lengths[i]));
+                    edges.push(Ray::vertical_line(start_position, edge_lengths[i]));
                 }
             }
         }
@@ -163,7 +164,7 @@ impl RayEqn {
                     let diff = slope - other_slope;
                     if diff <= f32::EPSILON {
                         // Check for overlap
-                        if RayEqn::overlap(
+                        if Ray::overlap(
                             &self.start_position,
                             &other.start_position,
                             &final_pos1,
@@ -267,7 +268,7 @@ impl RayEqn {
 
 // TODO: Add FOV by limiting range of angles
 /// Casts rays of speficifed length from the center of the given boid.
-pub fn raycast(boid: &Boid, ray_length: f32, num_rays: u32) -> Vec<RayEqn> {
+pub fn raycast(boid: &Boid, ray_length: f32, num_rays: u32) -> Vec<Ray> {
     // Cast rays from the center of the boid
     let center = &boid.position;
 
@@ -279,7 +280,7 @@ pub fn raycast(boid: &Boid, ray_length: f32, num_rays: u32) -> Vec<RayEqn> {
     for i in 0..num_rays {
         // If it is a vertical line, set slope as undefined (tan is undef for 90 and 270 degrees)
         if angle == 90. || angle == 270. {
-            rays.push(RayEqn {
+            rays.push(Ray {
                 slope: None,
                 y_intercept: None,
                 start_position: center.clone(),
@@ -291,7 +292,7 @@ pub fn raycast(boid: &Boid, ray_length: f32, num_rays: u32) -> Vec<RayEqn> {
             // Calculate y-intercept of the ray
             let y_inter = center.y - (center.x * ray_slope);
 
-            rays.push(RayEqn {
+            rays.push(Ray {
                 slope: Some(ray_slope),
                 y_intercept: Some(y_inter),
                 start_position: center.clone(),
@@ -326,7 +327,7 @@ mod collision_tests {
         let vertex2 = Vec2d::new(p0.x + 25., p0.y - 25.);
         let vertex3 = Vec2d::new(p0.x - 25., p0.y - 25.);
 
-        let expected_edges = RayEqn::from_vertices(
+        let expected_edges = Ray::from_vertices(
             &[vertex1.clone(), vertex2.clone(), vertex3.clone()],
             edge_lengths,
         );
@@ -344,7 +345,7 @@ mod collision_tests {
         let final_pos1 = Vec2d::new(0., 5.);
         let start_pos2 = Vec2d::new(0., 3.);
         let final_pos2 = Vec2d::new(0., 9.);
-        assert!(RayEqn::overlap(
+        assert!(Ray::overlap(
             &start_pos1,
             &start_pos2,
             &final_pos1,
@@ -355,16 +356,16 @@ mod collision_tests {
     #[test]
     fn it_can_check_ray_intersection() {
         // y = 3x
-        let line1 = RayEqn::new(Some(3.), Some(0.), Vec2d::new(0., 0.), 10.);
+        let line1 = Ray::new(Some(3.), Some(0.), Vec2d::new(0., 0.), 10.);
 
         // y = -5x + 10
-        let line2 = RayEqn::new(Some(5.), Some(10.), Vec2d::new(1., 1.), 10.);
+        let line2 = Ray::new(Some(5.), Some(10.), Vec2d::new(1., 1.), 10.);
 
         // x = 3
-        let line3 = RayEqn::vertical_line(Vec2d::new(3., 0.), 100.);
+        let line3 = Ray::vertical_line(Vec2d::new(3., 0.), 100.);
 
         // x = 5
-        let line4 = RayEqn::vertical_line(Vec2d::new(5., 0.), 10.);
+        let line4 = Ray::vertical_line(Vec2d::new(5., 0.), 10.);
 
         assert!(line1.intersects(&line2).is_some());
         assert!(line1.intersects(&line3).is_some());

@@ -1,5 +1,5 @@
 extern crate proc_macro;
-use boids::{Boid, Vec2d, World};
+use boids::{GlobalConstants, Vec2d, World};
 use inline_python::{python, Context};
 
 fn plot_sim(time: Vec<usize>, pos: (Vec<f32>, Vec<f32>)) {
@@ -34,8 +34,13 @@ fn plot_sim(time: Vec<usize>, pos: (Vec<f32>, Vec<f32>)) {
 }
 
 fn run_sim() -> (Vec<usize>, Vec<f32>, Vec<f32>) {
-    let boid = Boid::new(1., Vec2d::new(0., 0.), Vec2d::new(0., 5.));
-    let mut world = World::new(500., 500., vec![boid]);
+    let globals = GlobalConstants {
+        num_boids: 1,
+        step_size: 1.,
+        max_speed: Vec2d::new(50., 50.),
+        boid_sprite_size: (10., 10.),
+    };
+    let mut world = World::new(500., 500., globals);
 
     let mut x = Vec::new();
     let mut y = Vec::new();
