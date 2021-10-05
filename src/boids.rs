@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::Vec2d;
+use crate::{Collision, Vec2d};
 
 /// Defines a bird-like object. This is the basic "entity" of this program.
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
@@ -8,6 +8,7 @@ pub struct Boid {
     pub position: Vec2d,
     pub velocity: Vec2d,
     pub mass: f32,
+    pub collisions: Vec<Collision>,
 }
 
 impl Boid {
@@ -17,6 +18,7 @@ impl Boid {
             position: inital_position,
             velocity: inital_velocity,
             mass,
+            collisions: Vec::new(),
         }
     }
 
@@ -53,6 +55,7 @@ mod boid_tests {
             mass: 1.,
             position: pos2,
             velocity: vel2,
+            collisions: Vec::new(),
         };
 
         assert!((boid.mass - boid2.mass).abs() < f32::EPSILON);

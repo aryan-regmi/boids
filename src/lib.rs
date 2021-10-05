@@ -8,4 +8,4 @@ mod world;
 pub use world::{GlobalConstants, World};
 
 mod collisions;
-pub use collisions::{raycast, Ray, Triangle};
+pub use collisions::{detect_collisions, raycast, Collision, Ray, Triangle};

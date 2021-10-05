@@ -1,27 +1,27 @@
-use crate::{Boid, Vec2d, World};
+use crate::{Boid, GlobalConstants, Vec2d, World};
 
 impl World {
     /// Implements warping around the borders of the world.
     pub fn warp_world_borders(&mut self) {
         for boid in self.boids.iter_mut() {
-            if boid.position.x < 0. {
+            if boid.position.x < -self.width {
                 // If the boid hits the left wall, set position to the right wall
                 boid.position.x = self.width;
             } else if boid.position.x > self.width {
                 // If the boid hits the right wall, set position to the left wall
-                boid.position.x = 0.;
-            } else if boid.position.y > 0. {
+                boid.position.x = -self.width;
+            } else if boid.position.y > self.height {
                 // If the boid hits the top wall, set position to the bottom wall
                 boid.position.y = -self.height;
             } else if boid.position.y < -self.height {
                 // If the boid hits the bottom wall, set positon to the top
-                boid.position.y = 0.
+                boid.position.y = self.height;
             }
         }
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Triangle {
     vertices: Vec<Vec2d>,
     edges: Vec<Ray>,
@@ -55,7 +55,7 @@ impl Triangle {
 /// Holds coefficients for the equation defining the ray.
 /// (y = mx + b, from the start of the ray to the length)
 /// slope is m ==> tan(theta) = tan(y/x)
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Ray {
     pub slope: Option<f32>,
     pub y_intercept: Option<f32>,
@@ -264,6 +264,30 @@ impl Ray {
             }
         }
     }
+
+    pub fn contains(&self, point: Vec2d) -> bool {
+        match self.slope {
+            Some(m) => {
+                let expected_y = -(m * point.x + self.y_intercept.unwrap());
+                if point.y == expected_y {
+                    return true;
+                }
+                false
+            }
+            // If current ray is a vertical line
+            None => {
+                let ray_endpoint = -(self.start_position.y + self.length);
+                // If the point lines along the vertical ray
+                if point.x == self.start_position.x
+                    && point.y > ray_endpoint
+                    && point.y < self.start_position.y
+                {
+                    return true;
+                }
+                false
+            }
+        }
+    }
 }
 
 // TODO: Add FOV by limiting range of angles
@@ -300,8 +324,131 @@ pub fn raycast(boid: &Boid, ray_length: f32, num_rays: u32) -> Vec<Ray> {
             });
         }
     }
-
     rays
+}
+
+struct Circle {
+    x: f32,
+    y: f32,
+    radius: f32,
+}
+
+impl Circle {
+    // Checks if current circle collides with other circle
+    fn collides(&self, other: &Circle) -> bool {
+        let dx = self.x - other.x;
+        let dy = self.y - other.y;
+        let distance = (dx * dx + dy * dy).sqrt();
+
+        if distance < self.radius + other.radius {
+            return true;
+        }
+
+        false
+    }
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
+pub struct Collision {
+    id: usize,
+    location: Vec2d,
+    velocity: Vec2d,
+}
+
+pub struct TriangleHitbox {
+    triangle: Triangle,
+    velocity: Vec2d,
+}
+
+pub fn detect_collisions(world: &mut World, globals: GlobalConstants) {
+    // Grab values from globals
+    let search_radius = globals.broad_radius;
+    let ray_length = globals.boid_sight_range;
+    let num_rays = globals.boid_sight_precision;
+
+    // Grab boids to collide and their hitboxes
+    let boids = world.boids.clone();
+
+    for (boid_counter, boid) in boids.iter().enumerate() {
+        // Broad search using circles
+        let neighbours = broad_search(boid, world, search_radius);
+
+        // Only do narrow search if there are neighbours/possible collisions
+        if !neighbours.is_empty() {
+            // Cast rays from boid
+            let rays = raycast(boid, ray_length, num_rays);
+
+            // Narrow search using raycast
+            // -> Find point of intersection
+            // -> Subtract distance from center to find actual collision
+
+            // Loop through all possible collisions
+            for (collision_id, neigh) in neighbours.iter().enumerate() {
+                // Check if each edge of the neighbour's hitbox intersects any of our cast rays
+                for neighbor_edge in &neigh.triangle.edges {
+                    for ray in &rays {
+                        // Check to see if the boid's rays intersect the neighbour
+                        let intersect = ray.intersects(neighbor_edge);
+
+                        // Check to see if the two boids intersect
+                        if let Some(pos) = intersect {
+                            // Check to see if intersect point exists on any of the current boid's edges
+                            for edge in &world.hitboxes[boid_counter].edges {
+                                if edge.contains(pos.clone()) {
+                                    let collision = Collision {
+                                        id: collision_id,
+                                        location: pos.clone(),
+                                        velocity: neigh.velocity.clone(),
+                                    };
+                                    world.boids[boid_counter].collisions.push(collision);
+
+                                    dbg!("Collided");
+
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn broad_search(boid: &Boid, world: &World, search_radius: f32) -> Vec<TriangleHitbox> {
+    // Initalize necessary variables
+    let mut possible_collisions: Vec<TriangleHitbox> = Vec::new();
+    let other_boids = &world.boids;
+
+    let center = &boid.position;
+    let current_circle = Circle {
+        x: center.x,
+        y: center.y,
+        radius: search_radius,
+    };
+    // Make circle and check if it overlaps any other boids
+    for (neighbour_counter, other) in other_boids.iter().enumerate() {
+        // Don't collide with itself
+        if other != boid {
+            let other_center = &other.position;
+            let other_circle = Circle {
+                x: other_center.x,
+                y: other_center.y,
+                radius: search_radius,
+            };
+
+            // If search radii collide, then there is a possible collision
+            if current_circle.collides(&other_circle) {
+                let hitbox = TriangleHitbox {
+                    triangle: world.hitboxes[neighbour_counter].clone(),
+                    velocity: other.velocity.clone(),
+                };
+                possible_collisions.push(hitbox);
+            }
+        }
+    }
+
+    possible_collisions
 }
 
 #[cfg(test)]
@@ -370,5 +517,15 @@ mod collision_tests {
         assert!(line1.intersects(&line2).is_some());
         assert!(line1.intersects(&line3).is_some());
         assert!(line3.intersects(&line4).is_none());
+    }
+
+    #[test]
+    fn it_can_check_if_ray_contains_point() {
+        let ray1 = Ray::vertical_line(Vec2d::new(3., 0.), 10.);
+        let ray2 = Ray::new(Some(3.), Some(0.), Vec2d::new(0., 0.), 10.);
+        let point = Vec2d::new(3., 9.);
+
+        assert!(ray1.contains(point.clone()));
+        assert!(ray2.contains(point));
     }
 }

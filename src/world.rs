@@ -13,7 +13,7 @@ pub struct World {
 }
 
 /// Global state that holds all the constants for the `World`.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub struct GlobalConstants {
     // Number of boids in the world
     pub num_boids: usize,
@@ -27,6 +27,15 @@ pub struct GlobalConstants {
 
     // Sprite size of boids
     pub boid_sprite_size: (f32, f32),
+
+    // Broad Search Radius
+    pub broad_radius: f32,
+
+    // How far the boids can see
+    pub boid_sight_range: f32,
+
+    // How many rays the boids cast
+    pub boid_sight_precision: u32,
 }
 
 impl World {
@@ -45,11 +54,14 @@ impl World {
         let boid_sprite_size = globals.boid_sprite_size;
 
         // Create new boids with randomized inital conditions
-        for _ in 0..globals.num_boids {
+        for _i in 0..globals.num_boids {
             // Randomize inital conditions of boid
             let mass = random();
             let (inital_position, inital_velocity) =
                 World::randomize_inital_conditions(width, height, max_speed);
+
+            /* dbg!("Change This In Production!");
+            let (inital_position, inital_velocity) = (Vec2d::new(100., 100.), Vec2d::new(0., 0.)); */
 
             // Add hitbox to world
             let hitbox = Triangle::new(&inital_position, boid_sprite_size);
@@ -58,8 +70,6 @@ impl World {
             // Add boid to world
             boids.push(Boid::new(mass, inital_position, inital_velocity));
         }
-
-        // TODO: Initial Raycast!!
 
         Self {
             boids,
@@ -70,10 +80,20 @@ impl World {
     }
 
     fn randomize_inital_conditions(width: f32, height: f32, max_speed: &Vec2d) -> (Vec2d, Vec2d) {
-        let x0 = width * random::<f32>();
-        let y0 = height * random::<f32>();
-        let vx0 = max_speed.x * random::<f32>();
-        let vy0 = max_speed.y * random::<f32>();
+        // Randomize signs of positions and velocities
+        let mut signs = Vec::new();
+        for i in 0..4 {
+            let rand_sign = random::<bool>();
+            if rand_sign {
+                signs.push(1.);
+            } else {
+                signs.push(-1.)
+            }
+        }
+        let x0 = signs[0] * width * random::<f32>();
+        let y0 = signs[1] * height * random::<f32>();
+        let vx0 = signs[2] * max_speed.x * random::<f32>();
+        let vy0 = signs[3] * max_speed.y * random::<f32>();
         let inital_position = Vec2d::new(x0, y0);
         let inital_velocity = Vec2d::new(vx0, vy0);
         (inital_position, inital_velocity)
@@ -99,6 +119,9 @@ mod world_tests {
             step_size: 1.,
             max_speed: Vec2d::new(50., 50.),
             boid_sprite_size: (10., 10.),
+            broad_radius: 20.,
+            boid_sight_range: 10.,
+            boid_sight_precision: 12,
         };
         let world = World::new(500., 500., globals);
         assert_eq!(world.width, 500.);
@@ -114,6 +137,9 @@ mod world_tests {
             step_size: 1.,
             max_speed: Vec2d::new(50., 50.),
             boid_sprite_size: (10., 10.),
+            broad_radius: 20.,
+            boid_sight_range: 10.,
+            boid_sight_precision: 12,
         };
         let mut world = World::new(500., 500., globals);
         let init_pos = world.boids[0].position.clone();
